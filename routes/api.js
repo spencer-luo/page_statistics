@@ -74,7 +74,7 @@ router.get('/page-view', queryLimiter, (req, res) => {
     const { path } = req.query;
     
     if (!path) {
-      return res.status(400).json({ error: 'Path parameter is required' });
+      return res.status(400).json({ error: 'path parameter is required' });
     }
 
     const pageStats = stats.getPageStats(path);
@@ -110,14 +110,11 @@ router.get('/site-view', queryLimiter, (req, res) => {
 // 获取所有页面统计
 router.get('/all-pages', queryLimiter, (req, res) => {
   try {
-    const statsData = require('../storage/data.json');
-    const pages = statsData.pages || {};
-    
-    const pageStats = Object.keys(pages).map(path => ({
+    const pageStats = Object.keys(stats.data.pages || {}).map(path => ({
       path: path,
-      pv: pages[path].pv,
-      uv: pages[path].uv.length,
-      lastUpdated: pages[path].lastUpdated
+      pv: stats.data.pages[path].pv,
+      uv: stats.data.pages[path].uv.size,
+      lastUpdated: stats.data.pages[path].lastUpdated
     }));
     
     res.json({

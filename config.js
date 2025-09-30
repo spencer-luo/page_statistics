@@ -1,5 +1,5 @@
 module.exports = {
-  port: process.env.PORT || 3000,
+  port: process.env.PORT || 6870,
   // 数据存储配置
   storage: {
     file: './storage/data.json',
@@ -10,7 +10,7 @@ module.exports = {
     // UV 统计的时间窗口（分钟）
     uvWindow: 30,
     // 自动保存间隔（分钟）
-    saveInterval: 5
+    saveInterval: 0.2 // TODO 12s
   },
   // 安全配置
   security: {

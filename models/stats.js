@@ -159,6 +159,7 @@ class PageStats {
         pv: daily.pv,
         uv: daily.uv.size
       },
+      // 可以大致的表示网站的文档数(文章数量)，注意：这里不会包含新建但还未访问的页面。
       pages: Object.keys(this.data.pages).length
     };
   }
