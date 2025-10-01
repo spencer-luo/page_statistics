@@ -37,33 +37,31 @@ class DomainStats {
       },
       pages: {},
     };
-    this.storageFile = this.getStorageFilePath();
-    this.backupFile = this.getBackupFilePath();
+    this.storageFile = "";
+    this.backupFile = "";
+
     this.init();
-  }
-
-  private getStorageFilePath(): string {
-    return path.resolve(__dirname, '..', config.storage.directory, `${this.domain}.json`);
-  }
-
-  private getBackupFilePath(): string {
-    return path.resolve(__dirname, '..', config.storage.backupDirectory, `${this.domain}-${Date.now()}.json`);
   }
 
   private async init(): Promise<void> {
     try {
-      await this.ensureDirectories();
-      await this.loadData();
+      this.initStorageFile();
+      this.loadData();
       logger.info(`Statistics data loaded for domain: ${this.domain}`);
     } catch (error) {
       logger.info(`No existing data found for domain: ${this.domain}, starting fresh`);
     }
   }
 
-  private async ensureDirectories(): Promise<void> {
+  private async initStorageFile(): Promise<void> {
     try {
-      await fs.mkdir(config.storage.directory, { recursive: true });
-      await fs.mkdir(config.storage.backupDirectory, { recursive: true });
+      const directory = path.resolve(__dirname, '..', config.storage.directory);
+      this.storageFile =  path.resolve(directory, `${this.domain}.json`);
+      const backupDirectory = path.resolve(__dirname, '..', config.storage.backupDirectory);
+      this.backupFile =  path.resolve(backupDirectory, `${this.domain}.json`);
+
+      await fs.mkdir(directory, { recursive: true });
+      await fs.mkdir(backupDirectory, { recursive: true });
     } catch (error) {
       logger.error(`Failed to create storage directories: ${(error as Error).message}`);
       throw error;
@@ -75,7 +73,7 @@ class DomainStats {
       const fileData = await fs.readFile(this.storageFile, 'utf8');
       const parsedData = JSON.parse(fileData);
       // TODO
-      logger.info(`loadData storageFile: ${this.storageFile} data: ${fileData}`);
+      // logger.info(`loadData storageFile: ${this.storageFile} data: ${fileData}`);
       
       // 重建Set对象
       parsedData.site.uv = new Set(parsedData.site.uv || []);
@@ -93,9 +91,10 @@ class DomainStats {
       });
 
       this.data = parsedData;
-      
     } catch (error) {
-      throw new Error(`Failed to load statistics data: ${(error as Error).message}`);
+      logger.warn(`Failed to load ${this.storageFile}, save init data to file.`)
+      this.saveData();
+      // throw new Error(`Failed to load statistics data: ${(error as Error).message}`);
     }
   }
 
@@ -109,9 +108,6 @@ class DomainStats {
         return value;
       }));
       
-      // 先创建备份
-      await this.createBackup();
-      
       // 保存数据
       await fs.writeFile(this.storageFile, JSON.stringify(dataToSave, null, 2));
     } catch (error) {
@@ -120,7 +116,7 @@ class DomainStats {
     }
   }
 
-  private async createBackup(): Promise<void> {
+  async createBackup(): Promise<void> {
     try {
       // 检查是否存在现有文件
       await fs.stat(this.storageFile);
@@ -258,6 +254,9 @@ class PageStatsManager {
   async saveAllData(): Promise<void> {
     try {
       for (const domain of Object.values(this.domains)) {
+        // 先创建备份
+        await domain.createBackup();
+        // 再保存
         await domain.saveData();
       }
       logger.info('All statistics data saved successfully');
