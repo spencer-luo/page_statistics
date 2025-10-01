@@ -74,7 +74,7 @@ class DomainStats {
       await fs.mkdir(config.storage.directory, { recursive: true });
       await fs.mkdir(config.storage.backupDirectory, { recursive: true });
     } catch (error) {
-      logger.error(`Failed to create storage directories: ${error.message}`);
+      logger.error(`Failed to create storage directories: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -99,7 +99,7 @@ class DomainStats {
       
       this.data = parsedData;
     } catch (error) {
-      throw new Error(`Failed to load statistics data: ${error.message}`);
+      throw new Error(`Failed to load statistics data: ${(error as Error).message}`);
     }
   }
 
@@ -119,7 +119,7 @@ class DomainStats {
       // 保存数据
       await fs.writeFile(this.storageFile, JSON.stringify(dataToSave, null, 2));
     } catch (error) {
-      logger.error(`Failed to save statistics data: ${error.message}`);
+      logger.error(`Failed to save statistics data: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -303,7 +303,7 @@ class PageStatsManager {
       }
       logger.info('All statistics data saved successfully');
     } catch (error) {
-      logger.error(`Failed to save all statistics data: ${error.message}`);
+      logger.error(`Failed to save all statistics data: ${(error as Error).message}`);
     }
   }
 
@@ -314,7 +314,7 @@ class PageStatsManager {
       }
       logger.info('Daily statistics reset successfully');
     } catch (error) {
-      logger.error(`Failed to reset daily statistics: ${error.message}`);
+      logger.error(`Failed to reset daily statistics: ${(error as Error).message}`);
     }
   }
 

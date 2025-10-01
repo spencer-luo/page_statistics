@@ -113,7 +113,7 @@ router.post('/track', trackLimiter, async (req: express.Request, res: express.Re
       message: 'Page view tracked successfully'
     });
   } catch (error) {
-    logger.error(`Error tracking page view: ${error.message}`);
+    logger.error(`Error tracking page view: ${(error as Error).message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -140,7 +140,7 @@ router.get('/page-stats', queryLimiter, async (req: express.Request, res: expres
       stats: pageStats
     });
   } catch (error) {
-    logger.error(`Error getting page stats: ${error.message}`);
+    logger.error(`Error getting page stats: ${(error as Error).message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -167,7 +167,7 @@ router.get('/daily-stats', queryLimiter, async (req: express.Request, res: expre
       stats: dailyStats
     });
   } catch (error) {
-    logger.error(`Error getting daily stats: ${error.message}`);
+    logger.error(`Error getting daily stats: ${(error as Error).message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -194,7 +194,7 @@ router.get('/top-pages', queryLimiter, async (req: express.Request, res: express
       count: topPages.length
     });
   } catch (error) {
-    logger.error(`Error getting top pages: ${error.message}`);
+    logger.error(`Error getting top pages: ${(error as Error).message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -247,7 +247,7 @@ router.get('/all-pages', queryLimiter, async (req: express.Request, res: express
       sortBy: sortBy
     });
   } catch (error) {
-    logger.error(`Error getting all pages: ${error.message}`);
+    logger.error(`Error getting all pages: ${(error as Error).message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -261,7 +261,7 @@ router.get('/domains', queryLimiter, async (req: express.Request, res: express.R
       count: domains.length
     });
   } catch (error) {
-    logger.error(`Error getting domains: ${error.message}`);
+    logger.error(`Error getting domains: ${(error as Error).message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -34,7 +34,7 @@ class Logger {
       // 清理过期日志
       this.cleanupOldLogs();
     } catch (error) {
-      console.error('Failed to initialize logger:', error);
+      console.error('Failed to initialize logger:', (error as Error).message);
     }
   }
 
@@ -51,7 +51,7 @@ class Logger {
       const infoLogPath = this.logConfig.info;
       await this.checkAndDeleteOldLog(infoLogPath, cutoffTime);
     } catch (error) {
-      console.error('Failed to cleanup old logs:', error);
+      console.error('Failed to cleanup old logs:', (error as Error).message);
     }
   }
 
@@ -70,7 +70,7 @@ class Logger {
     try {
       await fs.appendFile(logPath, message + '\n');
     } catch (error) {
-      console.error('Failed to write to log file:', error);
+      console.error('Failed to write to log file:', (error as Error).message);
     }
   }
 
