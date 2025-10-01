@@ -2,9 +2,11 @@ const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const config = require('../config');
+const logger = require('../logger');
 
-class PageStats {
-  constructor() {
+class DomainStats {
+  constructor(domain) {
+    this.domain = domain;
     this.data = {
       site: {
         pv: 0,
@@ -14,22 +16,36 @@ class PageStats {
       pages: {},
       sessions: {}
     };
-    this.storageFile = path.resolve(__dirname, '..', config.storage.file);
+    this.storageFile = this.getStorageFilePath();
+    this.backupFile = this.getBackupFilePath();
     this.init();
+  }
+
+  getStorageFilePath() {
+    return path.resolve(__dirname, '..', config.storage.directory, `${this.domain}.json`);
+  }
+
+  getBackupFilePath() {
+    return path.resolve(__dirname, '..', config.storage.backupDirectory, `${this.domain}-${Date.now()}.json`);
   }
 
   async init() {
     try {
+      await this.ensureDirectories();
       await this.loadData();
-      console.log('Statistics data loaded');
-      
-      // 设置定时保存
-      setInterval(() => this.saveData(), config.stats.saveInterval * 60 * 1000);
-      
-      // 每日 UV 重置
-      this.scheduleDailyReset();
+      logger.info(`Statistics data loaded for domain: ${this.domain}`);
     } catch (error) {
-      console.log('No existing data found, starting fresh');
+      logger.info(`No existing data found for domain: ${this.domain}, starting fresh`);
+    }
+  }
+
+  async ensureDirectories() {
+    try {
+      await fs.mkdir(config.storage.directory, { recursive: true });
+      await fs.mkdir(config.storage.backupDirectory, { recursive: true });
+    } catch (error) {
+      logger.error(`Failed to create storage directories: ${error.message}`);
+      throw error;
     }
   }
 
@@ -44,8 +60,15 @@ class PageStats {
       this.data.site.daily = parsed.site.daily || {};
       this.data.pages = parsed.pages || {};
       this.data.sessions = parsed.sessions || {};
+      
+      // 转换daily中的Set数据
+      Object.keys(this.data.site.daily).forEach(date => {
+        if (this.data.site.daily[date].uv && Array.isArray(this.data.site.daily[date].uv)) {
+          this.data.site.daily[date].uv = new Set(this.data.site.daily[date].uv);
+        }
+      });
     } catch (error) {
-      console.log('Creating new data file');
+      logger.info(`Creating new data file for domain: ${this.domain}`);
       await this.saveData();
     }
   }
@@ -56,35 +79,18 @@ class PageStats {
       // 转换 Set 为 Array 以便存储
       backup.site.uv = Array.from(this.data.site.uv);
       
+      // 转换daily中的Set数据
+      Object.keys(backup.site.daily).forEach(date => {
+        if (backup.site.daily[date].uv instanceof Set) {
+          backup.site.daily[date].uv = Array.from(backup.site.daily[date].uv);
+        }
+      });
+      
       await fs.writeFile(this.storageFile, JSON.stringify(backup, null, 2));
-      console.log('Data saved successfully');
+      logger.info(`Data saved successfully for domain: ${this.domain}`);
     } catch (error) {
-      console.error('Failed to save data:', error);
+      logger.error(`Failed to save data for domain ${this.domain}: ${error.message}`);
     }
-  }
-
-  scheduleDailyReset() {
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    
-    const timeUntilReset = tomorrow - now;
-    
-    setTimeout(() => {
-      this.resetDailyUV();
-      // 设置下一次重置
-      this.scheduleDailyReset();
-    }, timeUntilReset);
-  }
-
-  resetDailyUV() {
-    const today = new Date().toDateString();
-    this.data.site.daily[today] = {
-      pv: 0,
-      uv: new Set()
-    };
-    console.log(`Daily stats reset for ${today}`);
   }
 
   trackPageView(pagePath, clientId, userAgent) {
@@ -177,4 +183,79 @@ class PageStats {
   }
 }
 
-module.exports = new PageStats();
+class PageStatsManager {
+  constructor() {
+    this.domains = new Map();
+    this.init();
+  }
+
+  async init() {
+    // 设置定时保存
+    setInterval(() => this.saveAllData(), config.stats.saveInterval * 60 * 1000);
+    
+    // 每日 UV 重置
+    this.scheduleDailyReset();
+  }
+
+  getDomainStats(domain) {
+    if (!this.domains.has(domain)) {
+      this.domains.set(domain, new DomainStats(domain));
+    }
+    return this.domains.get(domain);
+  }
+
+  async saveAllData() {
+    const savePromises = Array.from(this.domains.values()).map(domainStats => 
+      domainStats.saveData()
+    );
+    
+    try {
+      await Promise.all(savePromises);
+      logger.info('All domains data saved');
+    } catch (error) {
+      logger.error(`Failed to save all domains data: ${error.message}`);
+    }
+  }
+
+  scheduleDailyReset() {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    const timeUntilReset = tomorrow - now;
+    
+    setTimeout(() => {
+      this.resetDailyUVForAllDomains();
+      // 设置下一次重置
+      this.scheduleDailyReset();
+    }, timeUntilReset);
+  }
+
+  resetDailyUVForAllDomains() {
+    const today = new Date().toDateString();
+    
+    this.domains.forEach(domainStats => {
+      domainStats.data.site.daily[today] = {
+        pv: 0,
+        uv: new Set()
+      };
+    });
+    
+    logger.info(`Daily stats reset for all domains on ${today}`);
+  }
+
+  // 检查域名是否在白名单中
+  isDomainAllowed(domain) {
+    return config.security.allowedDomains.includes(domain);
+  }
+
+  // 清理所有域名的过期会话
+  cleanupAllSessions() {
+    this.domains.forEach(domainStats => {
+      domainStats.cleanupSessions();
+    });
+  }
+}
+
+module.exports = new PageStatsManager();

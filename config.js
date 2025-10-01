@@ -2,8 +2,8 @@ module.exports = {
   port: process.env.PORT || 6870,
   // 数据存储配置
   storage: {
-    file: './storage/data.json',
-    backup: './storage/backup.json'
+    directory: './storage',
+    backupDirectory: './storage/backup'
   },
   // 统计配置
   stats: {
@@ -17,6 +17,19 @@ module.exports = {
     // 最大请求频率（每分钟）
     maxRequestsPerMinute: 60,
     // 信任的代理头
-    trustProxy: true
+    trustProxy: true,
+    // 域名白名单，只有在白名单中的域名才有效
+    allowedDomains: ['localhost', 'example.com', 'test.com']
+  },
+  // 日志配置
+  logging: {
+    // error等级的日志文件路径
+    error: './logs/error.log',
+    // info等级的日志文件路径
+    info: './logs/info.log',
+    // 是否打印到控制台
+    console: true,
+    // 日志文件最多存储的天数
+    maxDays: 7
   }
 };
