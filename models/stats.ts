@@ -198,6 +198,10 @@ class DomainStats {
     };
   }
 
+  getAllPages(pagePath: string): Record<string, PageData> {
+    return this.data.pages;
+  }
+
   resetDailyStats(): void {
     const today = new Date().toISOString().split('T')[0];
     this.data.site.daily[today] = { pv: 0, uv: new Set() };

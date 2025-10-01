@@ -103,13 +103,12 @@ router.post('/page-track', trackLimiter, async (req: express.Request, res: expre
     }
     
     const clientId = getClientId(req);
-    const userAgent = req.get('User-Agent') || 'unknown';
     
     // 记录页面访问
     const domainStats = stats.getDomainStats(domain);
     domainStats.trackPageView(path, clientId);
     
-    logger.info(`Page view tracked: ${domain}${path} by client ${clientId}, ua: ${userAgent}`);
+    logger.info(`Page view tracked: ${domain}${path} by client ${clientId}`);
     
     res.json({
       success: true,
@@ -219,16 +218,17 @@ router.get('/all-pages', queryAllLimiter, async (req: express.Request, res: expr
     
     // 获取对应域名的统计管理器
     const domainStats = stats.getDomainStats(domain);
+    const pages = domainStats.getAllPages();
     
     // 获取排序方式参数，默认为pv优先
     const sortBy = req.query.sortBy as string || 'pv';
     
-    const pageStats = Object.keys(domainStats.allPages || {})
+    const pageStats = Object.keys(pages || {})
       .map(path => ({
         path: path,
-        pv: domainStats.allPages[path].pv,
-        uv: domainStats.allPages[path].uv.size,
-        lastUpdated: domainStats.allPages[path].lastUpdated
+        pv: pages[path].pv,
+        uv: pages[path].uv.size,
+        lastUpdated: pages[path].lastUpdated
       }))
       .sort((a, b) => {
         if (sortBy === 'uv') {
