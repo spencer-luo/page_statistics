@@ -142,7 +142,7 @@ class DomainStats {
   getPageStats(pagePath) {
     const page = this.data.pages[pagePath];
     if (!page) {
-      return { pv: 0, uv: 0 };
+      return { pv: 0, uv: 0, lastUpdated: 0 };
     }
 
     return {

@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 自定义 API 路由前缀
-const apiPrefix = config.api && config.api.prefix ? `/${config.api.prefix}` : '/api';
+const apiPrefix = config.api && config.api.prefix ? `/${config.api.prefix}` : '/api-pagestats';
 app.use(apiPrefix, apiRoutes);
 
 // 健康检查
