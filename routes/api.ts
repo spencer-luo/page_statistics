@@ -20,16 +20,10 @@ interface DailyStats {
   uv: number;
 }
 
-interface TopPage {
-  path: string;
-  pv: number;
-  uv: number;
-}
-
 // 频率限制
 const trackLimiter = rateLimit({
   windowMs: 60 * 1000, // 1分钟
-  max: 60, // 每分钟最多60次请求
+  max: 120, // 每分钟最多120次请求
   message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -37,7 +31,15 @@ const trackLimiter = rateLimit({
 
 const queryLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 120,
+  max: 120, // 每分钟最多120次请求
+  message: { error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const queryAllLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10, // 每分钟最多10次请求
   message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -84,8 +86,8 @@ const validateDomain = (domain: string): boolean => {
   return config.security.allowedDomains.includes(domain);
 };
 
-// 跟踪页面访问
-router.post('/track', trackLimiter, async (req: express.Request, res: express.Response) => {
+// 页面访问触发接口
+router.post('/page-track', trackLimiter, async (req: express.Request, res: express.Response) => {
   try {
     const domain = getDomainFromRequest(req);
     
@@ -97,16 +99,17 @@ router.post('/track', trackLimiter, async (req: express.Request, res: express.Re
     
     const { path } = req.body;
     if (!path || typeof path !== 'string') {
-      return res.status(400).json({ error: 'Path is required and must be a string' });
+      return res.status(400).json({ error: 'Param path is required and must be a string' });
     }
     
     const clientId = getClientId(req);
+    const userAgent = req.get('User-Agent') || 'unknown';
     
     // 记录页面访问
     const domainStats = stats.getDomainStats(domain);
     domainStats.trackPageView(path, clientId);
     
-    logger.info(`Page view tracked: ${domain}${path} by client ${clientId}`);
+    logger.info(`Page view tracked: ${domain}${path} by client ${clientId}, ua: ${userAgent}`);
     
     res.json({
       success: true,
@@ -118,7 +121,7 @@ router.post('/track', trackLimiter, async (req: express.Request, res: express.Re
   }
 });
 
-// 获取页面统计
+// 页面访问查询接口
 router.get('/page-stats', queryLimiter, async (req: express.Request, res: express.Response) => {
   try {
     const domain = getDomainFromRequest(req);
@@ -130,14 +133,19 @@ router.get('/page-stats', queryLimiter, async (req: express.Request, res: expres
     }
     
     const { path } = req.query;
-    
+    if (!path || typeof path !== 'string') {
+      return res.status(400).json({ error: 'Param path is required and must be a string' });
+    }
+
     const domainStats = stats.getDomainStats(domain);
     const pageStats = domainStats.getPageStats(path as string | undefined);
     
+    
     res.json({
-      domain: domain,
-      path: path || 'all',
-      stats: pageStats
+      path: path,
+      pv: pageStats.pv,
+      uv: pageStats.uv,
+      lastUpdated: pageStats.lastUpdated
     });
   } catch (error) {
     logger.error(`Error getting page stats: ${(error as Error).message}`);
@@ -145,8 +153,8 @@ router.get('/page-stats', queryLimiter, async (req: express.Request, res: expres
   }
 });
 
-// 获取每日统计
-router.get('/daily-stats', queryLimiter, async (req: express.Request, res: express.Response) => {
+// 获取每日统计，参数date为空时表示获取当前的统计数据
+router.get('/daily-stats', queryAllLimiter, async (req: express.Request, res: express.Response) => {
   try {
     const domain = getDomainFromRequest(req);
     
@@ -172,8 +180,8 @@ router.get('/daily-stats', queryLimiter, async (req: express.Request, res: expre
   }
 });
 
-// 获取热门页面
-router.get('/top-pages', queryLimiter, async (req: express.Request, res: express.Response) => {
+// 网站访问量查询接口
+router.get('/site-stats', queryLimiter, async (req: express.Request, res: express.Response) => {
   try {
     const domain = getDomainFromRequest(req);
     
@@ -183,15 +191,14 @@ router.get('/top-pages', queryLimiter, async (req: express.Request, res: express
       return res.status(403).json({ error: 'Domain not allowed' });
     }
     
-    const limit = parseInt(req.query.limit as string) || 10;
-    
+    // 获取对应域名的统计管理器
     const domainStats = stats.getDomainStats(domain);
-    const topPages = domainStats.getTopPages(limit);
+    const siteStats = domainStats.getSiteStats();
     
     res.json({
-      domain: domain,
-      pages: topPages,
-      count: topPages.length
+      total: siteStats.total,
+      today: siteStats.today,
+      totalPages: siteStats.pages
     });
   } catch (error) {
     logger.error(`Error getting top pages: ${(error as Error).message}`);
@@ -200,7 +207,7 @@ router.get('/top-pages', queryLimiter, async (req: express.Request, res: express
 });
 
 // 获取所有页面统计
-router.get('/all-pages', queryLimiter, async (req: express.Request, res: express.Response) => {
+router.get('/all-pages', queryAllLimiter, async (req: express.Request, res: express.Response) => {
   try {
     const domain = getDomainFromRequest(req);
     
@@ -248,20 +255,6 @@ router.get('/all-pages', queryLimiter, async (req: express.Request, res: express
     });
   } catch (error) {
     logger.error(`Error getting all pages: ${(error as Error).message}`);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// 获取所有域名列表
-router.get('/domains', queryLimiter, async (req: express.Request, res: express.Response) => {
-  try {
-    const domains = stats.getAllDomains();
-    res.json({
-      domains: domains,
-      count: domains.length
-    });
-  } catch (error) {
-    logger.error(`Error getting domains: ${(error as Error).message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

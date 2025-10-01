@@ -22,7 +22,7 @@ export default {
     maxRequestsPerMinute: 60,
     // 信任的代理头
     trustProxy: true,
-    // 域名白名单，只有在白名单中的域名才有效
+    // 域名白名单，只有在白名单中的域名才有效。注意：白名单为空时，允许所有域名
     allowedDomains: ['localhost', 'example.com', 'test.com']
   },
   // 日志配置

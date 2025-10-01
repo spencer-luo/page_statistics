@@ -4,13 +4,6 @@ import { v4 as uuidv4 } from 'uuid';
 import config from '../config';
 import logger from '../logger';
 
-// 定义数据结构接口
-interface Session {
-  startTime: number;
-  lastActive: number;
-  pageViews: string[];
-}
-
 interface PageData {
   pv: number;
   uv: Set<string>;
@@ -20,13 +13,12 @@ interface PageData {
 interface SiteStats {
   pv: number;
   uv: Set<string>;
-  daily: Record<string, { pv: number; uv: number }>;
+  daily: Record<string, { pv: number; uv: Set<string> }>;
 }
 
 interface DomainStatsData {
   site: SiteStats;
   pages: Record<string, PageData>;
-  sessions: Record<string, Session>;
 }
 
 class DomainStats {
@@ -44,7 +36,6 @@ class DomainStats {
         daily: {}
       },
       pages: {},
-      sessions: {}
     };
     this.storageFile = this.getStorageFilePath();
     this.backupFile = this.getBackupFilePath();
@@ -81,23 +72,28 @@ class DomainStats {
 
   private async loadData(): Promise<void> {
     try {
-      const data = await fs.readFile(this.storageFile, 'utf8');
-      const parsedData = JSON.parse(data);
+      const fileData = await fs.readFile(this.storageFile, 'utf8');
+      const parsedData = JSON.parse(fileData);
+      // TODO
+      logger.info(`loadData storageFile: ${this.storageFile} data: ${fileData}`);
       
       // 重建Set对象
-      if (parsedData.site && parsedData.site.uv) {
-        parsedData.site.uv = new Set(parsedData.site.uv);
-      }
-      
-      if (parsedData.pages) {
-        Object.keys(parsedData.pages).forEach(pagePath => {
-          if (parsedData.pages[pagePath].uv) {
-            parsedData.pages[pagePath].uv = new Set(parsedData.pages[pagePath].uv);
-          }
-        });
-      }
-      
+      parsedData.site.uv = new Set(parsedData.site.uv || []);
+      // 转换daily中的Set数据
+      Object.keys(parsedData.site.daily).forEach(date => {
+        if (parsedData.site.daily[date].uv && Array.isArray(parsedData.site.daily[date].uv)) {
+          parsedData.site.daily[date].uv = new Set(parsedData.site.daily[date].uv);
+        }
+      });
+      // 转换pages中的Set数据
+      Object.keys(parsedData.pages).forEach(path => {
+        if (parsedData.pages[path].uv && Array.isArray(parsedData.pages[path].uv)) {
+          parsedData.pages[path].uv = new Set(parsedData.pages[path].uv);
+        }
+      });
+
       this.data = parsedData;
+      
     } catch (error) {
       throw new Error(`Failed to load statistics data: ${(error as Error).message}`);
     }
@@ -136,115 +132,79 @@ class DomainStats {
   }
 
   trackPageView(pagePath: string, clientId: string): void {
-    const now = Date.now();
+    const timestamp = Date.now();
     
     // 更新网站统计
     this.data.site.pv++;
     this.data.site.uv.add(clientId);
+    // 更新每日统计
+    const today = new Date().toISOString().split('T')[0];
+    if (!this.data.site.daily[today]) {
+      this.data.site.daily[today] = {
+        pv: 0,
+        uv: new Set()
+      };
+    }
+    this.data.site.daily[today].pv++;
+    this.data.site.daily[today].uv.add(clientId);
     
     // 更新页面统计
     if (!this.data.pages[pagePath]) {
       this.data.pages[pagePath] = {
         pv: 0,
         uv: new Set(),
-        lastUpdated: now
+        lastUpdated: timestamp
       };
     }
-    
     this.data.pages[pagePath].pv++;
     this.data.pages[pagePath].uv.add(clientId);
-    this.data.pages[pagePath].lastUpdated = now;
-    
-    // 更新会话
-    if (!this.data.sessions[clientId]) {
-      this.data.sessions[clientId] = {
-        startTime: now,
-        lastActive: now,
-        pageViews: []
-      };
-    }
-    
-    this.data.sessions[clientId].lastActive = now;
-    this.data.sessions[clientId].pageViews.push(pagePath);
-    
-    // 更新每日统计
-    const dateKey = new Date().toISOString().split('T')[0];
-    if (!this.data.site.daily[dateKey]) {
-      this.data.site.daily[dateKey] = { pv: 0, uv: 0 };
-    }
-    
-    this.data.site.daily[dateKey].pv++;
-    
-    // 检查该客户端是否已经在今天被统计过
-    const todaySessions = Object.keys(this.data.sessions)
-      .filter(sessionId => {
-        const session = this.data.sessions[sessionId];
-        return session.startTime >= new Date(dateKey).getTime();
-      });
-    
-    this.data.site.daily[dateKey].uv = todaySessions.length;
+    this.data.pages[pagePath].lastUpdated = timestamp;
   }
 
-  getPageStats(pagePath?: string): { pv: number; uv: number; lastUpdated: number } {
-    if (pagePath) {
-      const page = this.data.pages[pagePath];
-      if (!page) {
-        return { pv: 0, uv: 0, lastUpdated: 0 };
-      }
-      return {
-        pv: page.pv,
-        uv: page.uv.size,
-        lastUpdated: page.lastUpdated
-      };
+  getPageStats(pagePath: string): { pv: number; uv: number; lastUpdated: number } {
+    const page = this.data.pages[pagePath];
+    if (!page) {
+      return { pv: 0, uv: 0, lastUpdated: 0 };
     }
-    
-    // 返回所有页面的统计
+
     return {
-      pv: this.data.site.pv,
-      uv: this.data.site.uv.size,
-      lastUpdated: Date.now()
+      pv: page.pv,
+      uv: page.uv.size,
+      lastUpdated: page.lastUpdated
     };
   }
 
   getDailyStats(date?: string): { pv: number; uv: number } {
     const dateKey = date || new Date().toISOString().split('T')[0];
-    return this.data.site.daily[dateKey] || { pv: 0, uv: 0 };
+    const dailyData = this.data.site.daily[dateKey];
+    if (!dailyData)
+    {
+      return { pv: 0, uv: 0 };
+    }
+    return {pv: dailyData.pv, uv: dailyData.uv.size};
   }
 
-  getTopPages(limit: number = 10): Array<{ path: string; pv: number; uv: number }> {
-    return Object.keys(this.data.pages)
-      .map(path => ({
-        path: path,
-        pv: this.data.pages[path].pv,
-        uv: this.data.pages[path].uv.size
-      }))
-      .sort((a, b) => b.pv - a.pv)
-      .slice(0, limit);
-  }
+  getSiteStats() {
+    const today = new Date().toDateString();
+    const dailyData = this.data.site.daily[today] || { pv: 0, uv: new Set() };
 
-  cleanupExpiredSessions(): void {
-    const now = Date.now();
-    const sessionTimeout = config.stats.uvWindow * 60 * 1000;
-    
-    Object.keys(this.data.sessions).forEach(sessionId => {
-      const session = this.data.sessions[sessionId];
-      if (now - session.lastActive > sessionTimeout) {
-        delete this.data.sessions[sessionId];
-      }
-    });
+    return {
+      total: {
+        pv: this.data.site.pv,
+        uv: this.data.site.uv.size
+      },
+      today: {
+        pv: dailyData.pv,
+        uv: dailyData.uv.size
+      },
+      // 可以大致的表示网站的文档数(文章数量)，注意：这里不会包含新建但还未访问的页面。
+      pages: Object.keys(this.data.pages).length
+    };
   }
 
   resetDailyStats(): void {
     const today = new Date().toISOString().split('T')[0];
-    this.data.site.daily[today] = { pv: 0, uv: 0 };
-  }
-
-  get domainName(): string {
-    return this.domain;
-  }
-
-  get allPages(): Record<string, PageData> {
-    return this.data.pages;
+    this.data.site.daily[today] = { pv: 0, uv: new Set() };
   }
 }
 
@@ -298,7 +258,6 @@ class PageStatsManager {
   async saveAllData(): Promise<void> {
     try {
       for (const domain of Object.values(this.domains)) {
-        domain.cleanupExpiredSessions();
         await domain.saveData();
       }
       logger.info('All statistics data saved successfully');
@@ -316,18 +275,6 @@ class PageStatsManager {
     } catch (error) {
       logger.error(`Failed to reset daily statistics: ${(error as Error).message}`);
     }
-  }
-
-  // 清理过期会话
-  cleanupAllSessions(): void {
-    for (const domain of Object.values(this.domains)) {
-      domain.cleanupExpiredSessions();
-    }
-  }
-
-  // 获取所有域名
-  getAllDomains(): string[] {
-    return Object.keys(this.domains);
   }
 }
 

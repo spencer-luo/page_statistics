@@ -45,8 +45,6 @@ declare module 'models/stats' {
   const stats: {
     getDomainStats: (domain: string) => DomainStats;
     saveAllData: () => Promise<void>;
-    cleanupAllSessions: () => void;
-    getAllDomains: () => string[];
   };
   export default stats;
 }
