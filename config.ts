@@ -14,7 +14,9 @@ export default {
     // UV 统计的时间窗口（分钟）
     uvWindow: 30,
     // 自动保存间隔（分钟）
-    saveInterval: 0.3 // TODO 12s
+    saveInterval: 0.3, // TODO 12s
+    // 保留的历史天数
+    historyDays: 90
   },
   // 安全配置
   security: {

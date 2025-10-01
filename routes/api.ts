@@ -1,4 +1,9 @@
 import express from 'express';
+
+// 日期格式化函数
+function formatDate(timestamp: number): string {
+  return new Date(timestamp).toISOString().split('T')[0];
+}
 import { rateLimit } from 'express-rate-limit';
 import { v4 as uuidv4 } from 'uuid';
 import stats from 'models/stats';
@@ -144,7 +149,7 @@ router.get('/page-stats', queryLimiter, async (req: express.Request, res: expres
       path: path,
       pv: pageStats.pv,
       uv: pageStats.uv,
-      lastUpdated: pageStats.lastUpdated
+      lastUpdated: formatDate(pageStats.lastUpdated)
     });
   } catch (error) {
     logger.error(`Error getting page stats: ${(error as Error).message}`);
@@ -228,7 +233,7 @@ router.get('/all-pages', queryAllLimiter, async (req: express.Request, res: expr
         path: path,
         pv: pages[path].pv,
         uv: pages[path].uv.size,
-        lastUpdated: pages[path].lastUpdated
+        lastUpdated: formatDate(pages[path].lastUpdated)
       }))
       .sort((a, b) => {
         if (sortBy === 'uv') {
