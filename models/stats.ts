@@ -140,6 +140,8 @@ class DomainStats {
         pv: 0,
         uv: new Set()
       };
+      // 保留最近N天的记录
+      this.keepRecentDaysOnly();
     }
     this.data.site.daily[today].pv++;
     this.data.site.daily[today].uv.add(clientId);
@@ -178,6 +180,26 @@ class DomainStats {
       return { pv: 0, uv: 0 };
     }
     return {pv: dailyData.pv, uv: dailyData.uv.size};
+  }
+
+  /**
+   * 保留最近N天的daily数据记录
+   * 使用类似队列的数据结构，当数据量超过限制时，自动移除最早的记录
+   */
+  private keepRecentDaysOnly(): void {
+    const historyDays = config.stats.historyDays || 90;
+    const dates = Object.keys(this.data.site.daily);
+    
+    if (dates.length > historyDays) {
+      // 按日期排序
+      dates.sort();
+      
+      // 删除最早的记录，直到数量符合要求
+      const recordsToRemove = dates.length - historyDays;
+      for (let i = 0; i < recordsToRemove; i++) {
+        delete this.data.site.daily[dates[i]];
+      }
+    }
   }
 
   getSiteStats() {
