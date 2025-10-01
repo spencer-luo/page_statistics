@@ -15,7 +15,11 @@
       "models/*": ["models/*"],
       "routes/*": ["routes/*"]
     },
-    "typeRoots": ["./node_modules/@types", "./types"]
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "moduleResolution": "node"
+  },
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
   },
   "include": [
     "server.ts",
