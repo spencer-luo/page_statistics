@@ -1,14 +1,15 @@
 import express from 'express';
-
-// 日期格式化函数
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toISOString().split('T')[0];
-}
 import { rateLimit } from 'express-rate-limit';
 import { v4 as uuidv4 } from 'uuid';
 import stats from 'models/stats';
 import logger from 'logger';
 import config from 'config';
+import clientFinger from 'clientFinger';
+
+// 日期格式化函数
+function formatDate(timestamp: number): string {
+  return new Date(timestamp).toISOString().split('T')[0];
+}
 
 const router = express.Router();
 
@@ -107,13 +108,14 @@ router.post('/page-track', trackLimiter, async (req: express.Request, res: expre
       return res.status(400).json({ error: 'Param path is required and must be a string' });
     }
     
-    const clientId = getClientId(req);
+    const clientId = clientFinger.generate(req);
+    const clientIp = clientFinger.getClientIP(req);
     
     // 记录页面访问
     const domainStats = stats.getDomainStats(domain);
     domainStats.trackPageView(path, clientId);
     
-    logger.info(`Page view tracked: ${domain}${path} by client ${clientId}`);
+    logger.info(`Page view tracked: ${domain}${path} by client ${clientIp}_${clientIp}`);
     
     res.json({
       success: true,
