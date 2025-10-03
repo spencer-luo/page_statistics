@@ -67,9 +67,9 @@ class ClientFinger {
             return xRealIP;
         }
         
-        return req.connection?.remoteAddress || 
+        return req.ip || 
+               req.connection?.remoteAddress || 
                req.socket?.remoteAddress ||
-               req.connection?.socket?.remoteAddress ||
                '0.0.0.0';
     }
 }
