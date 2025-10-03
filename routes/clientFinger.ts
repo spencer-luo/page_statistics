@@ -19,7 +19,7 @@ import crypto from 'crypto';
 // }
 
 class ClientFinger {
-    static generate(req: express.Request): string {
+    generate(req: express.Request): string {
         const components: string[] = [];
         
         // 1. IP 地址（考虑代理）
@@ -55,7 +55,7 @@ class ClientFinger {
             .substring(0, 16); // 取前16位
     }
     
-    private static getClientIP(req: express.Request): string {
+    getClientIP(req: express.Request): string {
         // 考虑代理链的情况
         const xForwardedFor = req.headers['x-forwarded-for'];
         if (typeof xForwardedFor === 'string') {

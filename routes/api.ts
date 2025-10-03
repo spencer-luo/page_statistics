@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import stats from 'models/stats';
 import logger from 'logger';
 import config from 'config';
-import clientFinger from 'clientFinger';
+import clientFinger from 'routes/clientFinger';
 
 // 日期格式化函数
 function formatDate(timestamp: number): string {
