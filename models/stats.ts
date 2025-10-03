@@ -72,7 +72,6 @@ class DomainStats {
     try {
       const fileData = await fs.readFile(this.storageFile, 'utf8');
       const parsedData = JSON.parse(fileData);
-      // TODO
       // logger.info(`loadData storageFile: ${this.storageFile} data: ${fileData}`);
       
       // 重建Set对象
@@ -235,6 +234,12 @@ class PageStatsManager {
   private saveInterval: NodeJS.Timeout | null = null;
 
   constructor() {
+    // 初始化domains
+    for (const domain of config.security.allowedDomains) {
+      this.domains[domain] = new DomainStats(domain);
+    }
+
+    // 设置自动保存和重置的定时器
     this.initAutoSave();
     this.initDailyReset();
   }

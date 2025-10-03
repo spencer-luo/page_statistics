@@ -51,22 +51,6 @@ const queryAllLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// 获取客户端ID
-const getClientId = (req: express.Request): string => {
-  // 尝试从Cookie获取
-  if (req.cookies && req.cookies.client_id) {
-    return req.cookies.client_id;
-  }
-  
-  // 尝试从Header获取
-  if (req.headers['x-client-id']) {
-    return req.headers['x-client-id'] as string;
-  }
-  
-  // 生成新的客户端ID
-  return uuidv4();
-};
-
 // 从请求中获取域名
 const getDomainFromRequest = (req: express.Request): string => {
   // 优先从请求头中获取域名
@@ -115,7 +99,7 @@ router.post('/page-track', trackLimiter, async (req: express.Request, res: expre
     const domainStats = stats.getDomainStats(domain);
     domainStats.trackPageView(path, clientId);
     
-    logger.info(`Page view tracked: ${domain}${path} by client ${clientIp}_${clientIp}`);
+    logger.info(`[${domain}] Page view tracked: ${path} by client ${clientId}_${clientIp}`);
     
     res.json({
       success: true,

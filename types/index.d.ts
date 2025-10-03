@@ -54,3 +54,9 @@ declare module 'routes/api' {
   const router: express.Router;
   export default router;
 }
+
+declare module 'routes/clientFinger' {
+  // import express from 'express';
+  // const router: express.Router;
+  export default clientFinger;
+}

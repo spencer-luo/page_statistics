@@ -1,22 +1,8 @@
-// utils/clientFingerprint.ts
+// 多因子指纹识别 的算法识别ClientId
 import express from 'express';
 import crypto from 'crypto';
+import logger from 'logger';
 
-// interface Request {
-//     get(header: string): string | undefined;
-//     headers: {
-//         [key: string]: string | string[] | undefined;
-//     };
-//     connection?: {
-//         remoteAddress?: string;
-//         socket?: {
-//             remoteAddress?: string;
-//         };
-//     };
-//     socket?: {
-//         remoteAddress?: string;
-//     };
-// }
 
 class ClientFinger {
     generate(req: express.Request): string {
@@ -48,11 +34,11 @@ class ClientFinger {
         
         // 生成指纹
         const fingerprintString = components.join('|');
-        return crypto
-            .createHash('sha256')
+        const text = crypto.createHash('sha256')
             .update(fingerprintString)
-            .digest('hex')
-            .substring(0, 16); // 取前16位
+            .digest('hex');
+        // logger.info(`text: ${text}, size: ${text.length}`);
+        return text.substring(0, 32); // 取前32位
     }
     
     getClientIP(req: express.Request): string {
@@ -63,10 +49,12 @@ class ClientFinger {
         }
         
         const xRealIP = req.headers['x-real-ip'];
+        // logger.info(`xRealIP: ${xRealIP}`);
         if (typeof xRealIP === 'string') {
             return xRealIP;
         }
         
+        // logger.info(`ip: ${req.ip}, remoteAddress1: ${req.connection.remoteAddress} remoteAddress2: ${req.socket.remoteAddress}`);
         return req.ip || 
                req.connection?.remoteAddress || 
                req.socket?.remoteAddress ||
