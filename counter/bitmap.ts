@@ -10,7 +10,7 @@ class Bitmap {
   /**
    * 设置指定位置为 1
    */
-  set(position: number): void {
+  add(position: number): void {
     if (position < 0 || position >= this.size) {
       throw new Error(`Position ${position} out of range [0, ${this.size})`);
     }
@@ -50,7 +50,7 @@ class Bitmap {
   /**
    * 获取所有设置为 1 的位置
    */
-  getPositions(): number[] {
+  valueList(): number[] {
     const positions: number[] = [];
     for (let i = 0; i < this.bits.length; i++) {
       const byte = this.bits[i];
@@ -137,9 +137,54 @@ class Bitmap {
   }
 
   /**
+   * 转换成 十六进制的字符串
+   * @param compress 0: 不压缩，1: 压缩
+   */
+  toHexStr(compress: number = 1) {
+    if (compress === 0) {
+      return this._toHex();
+    } else {
+      return this._toCompressedHex();
+    }
+  }
+
+  toJson()
+  {
+    return this.toHexStr();
+  }
+
+  /**
+   * 从 十六进制的字符串 中加载数据
+   * @param str 要加载的字符串
+   * @param compress 0: 不压缩，1: 压缩
+   */
+  fromHexStr(str: string, compress: number = 1) {
+    if (compress === 0) {
+      this._fromHex(str);
+    } else {
+      this._fromCompressedHex(str);
+    }
+  }
+
+  fromJson(str: string)
+  {
+    this.fromHexStr(str);
+  }
+
+  // 转换成二进制，For Test
+  toBinary(): string {
+    const chunks: string[] = [];
+    for (let i = 0; i < this.bits.length; i++) {
+      let binary = this.bits[i].toString(2).padStart(8, "0");
+      chunks.push(binary);
+    }
+    return chunks.join(" ");
+  }
+
+  /**
    * 序列化为十六进制字符串
    */
-  private toHex(): string {
+  private _toHex(): string {
     const text: string[] = [];
 
     for (let i = 0; i < this.bits.length; i++) {
@@ -154,7 +199,7 @@ class Bitmap {
   /**
    * 序列化为压缩的十六进制字符串（去除末尾的零）
    */
-  private toCompressedHex(): string {
+  private _toCompressedHex(): string {
     // 找到最后一个非零字节的索引
     let lastNonZeroIndex = -1;
     for (let i = this.bits.length - 1; i >= 0; i--) {
@@ -182,7 +227,7 @@ class Bitmap {
   /**
    * 从十六进制字符串反序列化
    */
-  private fromHex(hexString: string): void {
+  private _fromHex(hexString: string): void {
     // 验证十六进制字符串
     if (!/^[0-9a-fA-F]*$/.test(hexString)) {
       throw new Error("Invalid hexadecimal string");
@@ -207,7 +252,7 @@ class Bitmap {
   /**
    * 从压缩的十六进制字符串反序列化
    */
-  private fromCompressedHex(compressedHex: string): void {
+  private _fromCompressedHex(compressedHex: string): void {
     // 清空当前位图
     this.reset();
 
@@ -237,41 +282,9 @@ class Bitmap {
     // 剩余字节保持为零（因为已经 reset() 了）
   }
 
-  /**
-   * 转换成 十六进制的字符串
-   * @param compress 0: 不压缩，1: 压缩
-   */
-  toHexStr(compress: number = 1) {
-    if (compress === 0) {
-      return this.toHex();
-    } else {
-      return this.toCompressedHex();
-    }
-  }
-
-  /**
-   * 从 十六进制的字符串 中加载数据
-   * @param str 要加载的字符串
-   * @param compress 0: 不压缩，1: 压缩
-   */
-  fromHexStr(str: string, compress: number = 1) {
-    if (compress === 0) {
-      this.fromHex(str);
-    } else {
-      this.fromCompressedHex(str);
-    }
-  }
-
-  // 转换成二进制，For Test
-  toBinary(): string {
-    const chunks: string[] = [];
-    for (let i = 0; i < this.bits.length; i++) {
-      let binary = this.bits[i].toString(2).padStart(8, "0");
-      chunks.push(binary);
-    }
-    return chunks.join(" ");
-  }
 }
+
+export default Bitmap;
 
 // 测试Demo
 // =========================================================
@@ -283,17 +296,17 @@ function basicBitmapExample(): void {
   const bitmap = new Bitmap(100);
 
   // 设置一些位
-  bitmap.set(5);
-  bitmap.set(10);
-  bitmap.set(15);
-  bitmap.set(20);
+  bitmap.add(5);
+  bitmap.add(10);
+  bitmap.add(15);
+  bitmap.add(20);
 
   // 检查位状态
   console.log("位置 5:", bitmap.get(5)); // true
   console.log("位置 7:", bitmap.get(7)); // false
 
   // 获取所有设置的位
-  console.log("所有设置的位:", bitmap.getPositions()); // [5, 10, 15, 20]
+  console.log("所有设置的位:", bitmap.valueList()); // [5, 10, 15, 20]
 
   // 统计数量
   console.log("设置位数量:", bitmap.count()); // 4
@@ -302,7 +315,7 @@ function basicBitmapExample(): void {
   bitmap.clear(10);
   // [5, 15, 20]
   console.log(
-    `清除位置 10 后: ${bitmap.getPositions()} count: ${bitmap.count()}`
+    `清除位置 10 后: ${bitmap.valueList()} count: ${bitmap.count()}`
   );
 }
 
@@ -313,29 +326,29 @@ function bitmapOperationsExample(): void {
   const bitmap1 = new Bitmap(32);
   const bitmap2 = new Bitmap(32);
 
-  bitmap1.set(1);
-  bitmap1.set(3);
-  bitmap1.set(5);
+  bitmap1.add(1);
+  bitmap1.add(3);
+  bitmap1.add(5);
 
-  bitmap2.set(3);
-  bitmap2.set(5);
-  bitmap2.set(7);
+  bitmap2.add(3);
+  bitmap2.add(5);
+  bitmap2.add(7);
 
   //   打印bitmap1和bitmap2
-  console.log("bitmap1:", bitmap1.getPositions());
-  console.log("bitmap2:", bitmap2.getPositions());
+  console.log("bitmap1:", bitmap1.valueList());
+  console.log("bitmap2:", bitmap2.valueList());
 
   // AND 操作（交集）
   const andResult = bitmap1.and(bitmap2);
-  console.log("AND 结果:", andResult.getPositions()); // [3, 5]
+  console.log("AND 结果:", andResult.valueList()); // [3, 5]
 
   // OR 操作（并集）
   const orResult = bitmap1.or(bitmap2);
-  console.log("OR 结果:", orResult.getPositions()); // [1, 3, 5, 7]
+  console.log("OR 结果:", orResult.valueList()); // [1, 3, 5, 7]
 
   // NOT 操作
   const notResult = bitmap1.not();
-  console.log("bitmap1 NOT 结果前5位:", notResult.getPositions().slice(0, 5));
+  console.log("bitmap1 NOT 结果前5位:", notResult.valueList().slice(0, 5));
 }
 
 function hexSerializationDemo(): void {
@@ -343,14 +356,14 @@ function hexSerializationDemo(): void {
 
   // 创建位图并设置一些位
   const bitmap = new Bitmap(32);
-  bitmap.set(0);
-  bitmap.set(1);
-  bitmap.set(3);
-  bitmap.set(7);
-  bitmap.set(15);
-  bitmap.set(21);
+  bitmap.add(0);
+  bitmap.add(1);
+  bitmap.add(3);
+  bitmap.add(7);
+  bitmap.add(15);
+  bitmap.add(21);
 
-  console.log("设置的位:", bitmap.getPositions());
+  console.log("设置的位:", bitmap.valueList());
   console.log("二进制表示:", bitmap.toBinary());
 
   // 序列化为十六进制
@@ -366,19 +379,19 @@ function hexSerializationDemo(): void {
   // 反序列化测试1
   const bitmap2 = new Bitmap(32);
   bitmap2.fromHexStr(hexString, 0);
-  console.log("反序列化后位1:", bitmap2.getPositions());
+  console.log("反序列化后位1:", bitmap2.valueList());
   console.log(
     "反序列化验证1:",
-    bitmap.getPositions().join(",") === bitmap2.getPositions().join(",")
+    bitmap.valueList().join(",") === bitmap2.valueList().join(",")
   );
 
   // 反序列化测试2
   const bitmap3 = new Bitmap(32);
   bitmap3.fromHexStr(compressedHex);
-  console.log("反序列化后位2:", bitmap3.getPositions());
+  console.log("反序列化后位2:", bitmap3.valueList());
   console.log(
     "反序列化验证2:",
-    bitmap.getPositions().join(",") === bitmap3.getPositions().join(",")
+    bitmap.valueList().join(",") === bitmap3.valueList().join(",")
   );
 }
 

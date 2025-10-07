@@ -7,6 +7,8 @@ export default {
   },
   // API接口配置
   api: {
+    // prefix: 'api'
+    // TODO: to be fix
     prefix: 'api-pagestats'
   },
   // 统计配置
@@ -14,7 +16,8 @@ export default {
     // UV 统计的时间窗口（分钟）
     uvWindow: 30,
     // 自动保存间隔（分钟）
-    saveInterval: 0.3, // TODO 12s
+    // saveInterval: 30,
+    saveInterval: 0.3, // TODO: 12s
     // 保留的历史天数
     historyDays: 90
   },
@@ -25,7 +28,8 @@ export default {
     // 信任的代理头
     trustProxy: true,
     // 域名白名单，只有在白名单中的域名才有效。注意：白名单为空时，允许所有域名
-    allowedDomains: ['localhost', 'example.com', 'test.com']
+    // allowedDomains: ['example.com', 'test.com']
+    allowedDomains: ['localhost'] // TODO: to be modify while publish
   },
   // 日志配置
   logging: {

@@ -77,8 +77,17 @@ class HyperLogLog {
     return totalBits - (position + 1);
   }
 
-  add(value: string) {
-    const hash = this._hash(value);
+  add(value: number | string) {
+    let hash = value;
+    if (typeof value === 'number')
+    {
+      hash = value;
+    } else if (typeof value === 'string')
+    {
+      hash = this._hash(value);
+    } else {
+      throw new Error("Only support number or string param.");
+    }
 
     // 前 p 位作为桶索引
     const index = hash >>> (32 - this.p);
@@ -120,6 +129,13 @@ class HyperLogLog {
     return Math.round(estimate);
   }
 
+  /**
+   * 重置所有位为 0
+   */
+  reset(): void {
+    this.registers.fill(0);
+  }
+
   merge(other: HyperLogLog) {
     // 合并两个 HyperLogLog
     if (this.m !== other.m) {
@@ -154,7 +170,157 @@ class HyperLogLog {
     }
     this.registers.set(registers);
   }
+
+  
+  /**
+   * 转换成 十六进制的字符串
+   * @param compress 0: 不压缩，1: 压缩
+   */
+  toHexStr(compress: number = 1) {
+    if (compress === 0) {
+      return this._toHex();
+    } else {
+      return this._toCompressedHex();
+    }
+  }
+
+  toJson()
+  {
+    return this.toHexStr();
+  }
+
+  /**
+   * 从 十六进制的字符串 中加载数据
+   * @param str 要加载的字符串
+   * @param compress 0: 不压缩，1: 压缩
+   */
+  fromHexStr(str: string, compress: number = 1) {
+    if (compress === 0) {
+      this._fromHex(str);
+    } else {
+      this._fromCompressedHex(str);
+    }
+  }
+
+  fromJson(str: string)
+  {
+    this.fromHexStr(str);
+  }
+
+  // 转换成二进制，For Test
+  toBinary(): string {
+    const chunks: string[] = [];
+    for (let i = 0; i < this.registers.length; i++) {
+      let binary = this.registers[i].toString(2).padStart(8, "0");
+      chunks.push(binary);
+    }
+    return chunks.join(" ");
+  }
+
+  /**
+   * 序列化为十六进制字符串
+   */
+  private _toHex(): string {
+    const text: string[] = [];
+
+    for (let i = 0; i < this.registers.length; i++) {
+      // 将每个字节转换为两位十六进制，不足两位前面补零
+      const hex = this.registers[i].toString(16).padStart(2, "0");
+      text.push(hex);
+    }
+
+    return text.join("");
+  }
+
+  /**
+   * 序列化为压缩的十六进制字符串（去除末尾的零）
+   */
+  private _toCompressedHex(): string {
+    // 找到最后一个非零字节的索引
+    let lastNonZeroIndex = -1;
+    for (let i = this.registers.length - 1; i >= 0; i--) {
+      if (this.registers[i] !== 0) {
+        lastNonZeroIndex = i;
+        break;
+      }
+    }
+
+    // 如果所有字节都是零，返回空字符串
+    if (lastNonZeroIndex === -1) {
+      return "";
+    }
+
+    // 只序列化到最后一个非零字节
+    const hexParts: string[] = [];
+    for (let i = 0; i <= lastNonZeroIndex; i++) {
+      const hex = this.registers[i].toString(16).padStart(2, "0");
+      hexParts.push(hex);
+    }
+
+    return hexParts.join("");
+  }
+
+  /**
+   * 从十六进制字符串反序列化
+   */
+  private _fromHex(hexString: string): void {
+    // 验证十六进制字符串
+    if (!/^[0-9a-fA-F]*$/.test(hexString)) {
+      throw new Error("Invalid hexadecimal string");
+    }
+
+    // 每两个字符表示一个字节
+    const expectedLength = Math.ceil(this.m / 8) * 2;
+
+    if (hexString.length !== expectedLength) {
+      throw new Error(
+        `Hex string length mismatch. Expected ${expectedLength} characters, got ${hexString.length}`
+      );
+    }
+
+    // 将十六进制字符串转换为字节数组
+    for (let i = 0; i < this.registers.length; i++) {
+      const hexByte = hexString.substr(i * 2, 2);
+      this.registers[i] = parseInt(hexByte, 16);
+    }
+  }
+
+  /**
+   * 从压缩的十六进制字符串反序列化
+   */
+  private _fromCompressedHex(compressedHex: string): void {
+    // 清空当前位图
+    this.reset();
+
+    if (!compressedHex) {
+      return; // 空字符串表示所有位都是零
+    }
+
+    if (!/^[0-9a-fA-F]*$/.test(compressedHex)) {
+      throw new Error("Invalid hexadecimal string");
+    }
+
+    if (compressedHex.length % 2 !== 0) {
+      throw new Error("Hex string length must be even");
+    }
+
+    const byteCount = compressedHex.length / 2;
+    if (byteCount > this.registers.length) {
+      throw new Error("Compressed hex string too long for bitmap size");
+    }
+
+    // 填充字节数组
+    for (let i = 0; i < byteCount; i++) {
+      const hexByte = compressedHex.substr(i * 2, 2);
+      this.registers[i] = parseInt(hexByte, 16);
+    }
+
+    // 剩余字节保持为零（因为已经 reset() 了）
+  }
+
 }
+
+export default HyperLogLog;
 
 // 测试Demo
 // =========================================================
