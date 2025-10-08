@@ -24,8 +24,7 @@ declare module 'config' {
       allowedDomains: string[];
     };
     logging: {
-      error: string;
-      info: string;
+      saveDir: string;
       console: boolean;
       maxDays: number;
     };
