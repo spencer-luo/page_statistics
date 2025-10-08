@@ -1,4 +1,4 @@
-import HyperLogLog from "./hyperlogsog";
+import HyperLogLog from "./hyperloglog";
 import SetCounter from "./setcounter";
 import logger from "logger";
 
