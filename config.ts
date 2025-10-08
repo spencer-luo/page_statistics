@@ -30,12 +30,10 @@ export default {
   // 日志配置
   logging: {
     // error等级的日志文件路径
-    error: './logs/error.log',
-    // info等级的日志文件路径
-    info: './logs/info.log',
+    saveDir: './logs',
     // 是否打印到控制台
     console: false,
     // 日志文件最多存储的天数
-    maxDays: 7
+    maxDays: 30
   }
 };
