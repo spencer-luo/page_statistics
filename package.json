@@ -7,7 +7,8 @@
     "config": "dist/config.js",
     "logger": "dist/logger.js",
     "models": "dist/models",
-    "routes": "dist/routes"
+    "routes": "dist/routes",
+    "counter": "dist/counter"
   },
   "scripts": {
     "build": "tsc",
