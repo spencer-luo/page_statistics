@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf ./dist",
-    "start": "node dist/server.js",
+    "start": "node start-server.js",
     "dev": "ts-node server.ts",
     "watch": "tsc -w",
     "deploy:prepare": "npm run build && node -e \"require('fs').copyFileSync('package.json', 'dist/package.json'); require('fs').copyFileSync('package-lock.json', 'dist/package-lock.json');\"",
