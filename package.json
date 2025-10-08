@@ -4,11 +4,11 @@
   "description": "Page view statistics tracker",
   "main": "dist/server.js",
   "_moduleAliases": {
-    "config": "dist/config.js",
-    "logger": "dist/logger.js",
-    "models": "dist/models",
-    "routes": "dist/routes",
-    "counter": "dist/counter"
+    "config": "./config.js",
+    "logger": "./logger.js",
+    "models": "./models",
+    "routes": "./routes",
+    "counter": "./counter"
   },
   "scripts": {
     "build": "tsc",
