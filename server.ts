@@ -1,12 +1,11 @@
 // Setup module aliases for runtime
-import 'module-alias/register';
-
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import apiRoutes from 'routes/api';
-import config from 'config';
-import logger from 'logger';
+import apiRoutes from '#routes/api';
+import clientFingerRouter from '#routes/clientFinger';
+import config from '#config';
+import logger from '#logger';
 
 const app = express();
 
@@ -24,6 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 // 自定义 API 路由前缀
 const apiPrefix = config.api && config.api.prefix ? `/${config.api.prefix}` : '/api-pagestats';
 app.use(apiPrefix, apiRoutes);
+app.use('/client-finger', clientFingerRouter);
 
 // 健康检查
 app.get('/health', (req: express.Request, res: express.Response) => {

@@ -1,8 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
-import config from "../config";
-import logger from "../logger";
-import UvCounter from "counter/uvcounter";
+import { config } from "#config";
+import { logger } from "#logger";
+import { UvCounter } from "#counter/uvcounter";
 
 interface PageData {
   pv: number;

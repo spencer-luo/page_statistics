@@ -1,9 +1,9 @@
-import express from "express";
-import { rateLimit } from "express-rate-limit";
-import stats from "models/stats";
-import logger from "logger";
-import config from "config";
-import clientFinger from "routes/clientFinger";
+import express from 'express';
+import { rateLimit } from 'express-rate-limit';
+import stats from '#models/stats';
+import logger from '#logger';
+import config from '#config';
+import clientFinger from './clientFinger';
 
 // 日期格式化函数
 function formatDate(timestamp: number): string {

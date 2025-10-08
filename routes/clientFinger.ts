@@ -1,7 +1,7 @@
 // 多因子指纹识别 的算法识别ClientId
 import express from 'express';
 import crypto from 'crypto';
-import logger from 'logger';
+import logger from '#logger';
 
 
 class ClientFinger {

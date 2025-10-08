@@ -1,6 +1,6 @@
-import HyperLogLog from "./hyperloglog";
-import SetCounter from "./setcounter";
-import logger from "logger";
+import { HyperLogLog } from './hyperloglog';
+import { SetCounter } from './setcounter';
+import { logger } from '#logger';
 
 enum CountType {
   set, // 0, Set容器
