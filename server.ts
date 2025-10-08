@@ -1,17 +1,16 @@
 // Setup module aliases for runtime
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import apiRoutes from '#routes/api';
-import clientFingerRouter from '#routes/clientFinger';
-import config from '#config';
-import logger from '#logger';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import apiRoutes from "./routes/api";
+import config from "./config";
+import logger from "./logger";
 
 const app = express();
 
 // 设置信任代理
 if (config.security.trustProxy) {
-  app.set('trust proxy', 1);
+  app.set("trust proxy", 1);
 }
 
 // 中间件
@@ -21,24 +20,31 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 自定义 API 路由前缀
-const apiPrefix = config.api && config.api.prefix ? `/${config.api.prefix}` : '/api-pagestats';
+const apiPrefix =
+  config.api && config.api.prefix ? `/${config.api.prefix}` : "/api-pagestats";
 app.use(apiPrefix, apiRoutes);
-app.use('/client-finger', clientFingerRouter);
 
 // 健康检查
-app.get('/health', (req: express.Request, res: express.Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/health", (req: express.Request, res: express.Response) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // 错误处理
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error(`Error: ${err.message}`);
-  res.status(500).json({ error: 'Internal Server Error' });
-});
+app.use(
+  (
+    err: Error,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    logger.error(`Error: ${err.message}`);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+);
 
 // 404 处理
-app.use('*', (req: express.Request, res: express.Response) => {
-  res.status(404).json({ error: 'Not Found' });
+app.use("*", (req: express.Request, res: express.Response) => {
+  res.status(404).json({ error: "Not Found" });
 });
 
 const PORT = config.port || 3000;

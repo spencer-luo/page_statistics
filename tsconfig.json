@@ -9,18 +9,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
-    "paths": {
-      "#config": ["config.ts"],
-      "#logger": ["logger.ts"],
-      "#models/*": ["models/*"],
-      "#routes/*": ["routes/*"],
-      "#counter/*": ["counter/*"]
-    },
     "typeRoots": ["./node_modules/@types", "./types"],
     "moduleResolution": "node"
-  },
-  "ts-node": {
-    "require": ["tsconfig-paths/register"]
   },
   "include": [
     "server.ts",

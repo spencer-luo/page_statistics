@@ -1,9 +1,9 @@
-import express from 'express';
-import { rateLimit } from 'express-rate-limit';
-import stats from '#models/stats';
-import logger from '#logger';
-import config from '#config';
-import clientFinger from './clientFinger';
+import express from "express";
+import { rateLimit } from "express-rate-limit";
+import stats from "../models/stats";
+import logger from "../logger";
+import config from "../config";
+import clientFinger from "./clientFinger";
 
 // 日期格式化函数
 function formatDate(timestamp: number): string {
@@ -140,7 +140,7 @@ router.get(
       }
 
       const domainStats = stats.getDomainStats(domain);
-      const pageStats = domainStats.getPageStats(path as string | undefined);
+      const pageStats = domainStats.getPageStats(path as string);
 
       res.json({
         domain,
@@ -206,7 +206,8 @@ router.get(
       }
 
       const { date } = req.query;
-      const dateKey = date || new Date().toISOString().split("T")[0];
+      const dateKey =
+        (date as string) || new Date().toISOString().split("T")[0];
 
       const domainStats = stats.getDomainStats(domain);
       const dailyStats = domainStats.getDailyStats(dateKey);

@@ -1,6 +1,6 @@
-import { HyperLogLog } from './hyperloglog';
-import { SetCounter } from './setcounter';
-import { logger } from '#logger';
+import HyperLogLog from "./hyperloglog";
+import SetCounter from "./setcounter";
+import logger from "../logger";
 
 enum CountType {
   set, // 0, Set容器
@@ -20,9 +20,9 @@ class UvCounter {
     // 初始化为set方式
     this.type = type;
     if (this.type == CountType.set) {
-        this.counter = new SetCounter();
+      this.counter = new SetCounter();
     } else {
-        this.counter = new HyperLogLog();
+      this.counter = new HyperLogLog();
     }
   }
 
@@ -76,7 +76,9 @@ class UvCounter {
       // Bitmpa最多只能统计LLM_START个数值，LLM_START - 2是为了增加两次类型转换的机会。
       // 如果恰好在这个临界值进程重启了，可能会错过类型转换的机会。
       this._set2llm();
-      logger.info(`SetCounter converted to HyperLogLog, size: ${count} --> ${this.count()}`);
+      logger.info(
+        `SetCounter converted to HyperLogLog, size: ${count} --> ${this.count()}`
+      );
     }
   }
 
@@ -96,7 +98,7 @@ export default UvCounter;
 // 测试Demo
 // =========================================================
 
-import crypto from 'crypto';
+import crypto from "crypto";
 
 function testSetCounter() {
   const counter = new UvCounter();
@@ -116,7 +118,9 @@ function testBitmap() {
 
   // 初始化元素
   for (let i = 0; i < LLM_START - 2; i++) {
-    let clientId = `element-${i}-${Math.random().toString(36).substring(2, 10)}`;
+    let clientId = `element-${i}-${Math.random()
+      .toString(36)
+      .substring(2, 10)}`;
     // clientId = crypto.createHash('sha256').update(clientId).digest('hex');
     uv.add(clientId);
   }
@@ -127,7 +131,7 @@ function testBitmap() {
   console.log(`added element type: ${uv.getType()} count: ${uv.count()}`);
 
   const text = JSON.stringify(uv);
-  console.log("text:\n", text)
+  console.log("text:\n", text);
 
   const uv2 = UvCounter.fromJSON(text);
   console.log(`uv 2 type: ${uv2.getType()} count: ${uv2.count()}`);
@@ -137,7 +141,7 @@ function testBitmap() {
 
 // 运行示例
 if (require.main === module) {
-//   testSetCounter();
+  //   testSetCounter();
   testBitmap();
 }
 // =========================================================
