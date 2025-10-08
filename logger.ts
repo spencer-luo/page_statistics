@@ -24,6 +24,8 @@ class Logger {
 
   private async initialize(): Promise<void> {
     // 创建日志目录
+    this.logConfig.error = path.resolve(__dirname, ".", this.logConfig.error);
+    this.logConfig.info = path.resolve(__dirname, ".", this.logConfig.info);
     const errorLogDir = path.dirname(this.logConfig.error);
     const infoLogDir = path.dirname(this.logConfig.info);
 
@@ -83,7 +85,7 @@ class Logger {
   }
 
   async debug(message: string): Promise<void> {
-    const formattedMessage = this.formatMessage("debug", message);
+    const formattedMessage = this.formatMessage("D", message);
 
     if (this.logConfig.console) {
       console.log(formattedMessage);
@@ -93,7 +95,7 @@ class Logger {
   }
 
   async info(message: string): Promise<void> {
-    const formattedMessage = this.formatMessage("info", message);
+    const formattedMessage = this.formatMessage("I", message);
 
     if (this.logConfig.console) {
       console.log(formattedMessage);
@@ -103,7 +105,7 @@ class Logger {
   }
 
   async warn(message: string): Promise<void> {
-    const formattedMessage = this.formatMessage("warn", message);
+    const formattedMessage = this.formatMessage("W", message);
 
     if (this.logConfig.console) {
       console.warn(formattedMessage);
@@ -113,12 +115,14 @@ class Logger {
   }
 
   async error(message: string): Promise<void> {
-    const formattedMessage = this.formatMessage("error", message);
+    const formattedMessage = this.formatMessage("E", message);
 
     if (this.logConfig.console) {
       console.error(formattedMessage);
     }
 
+    // error等级的log会同时输出到error.log和info.log
+    await this.writeToFile(this.logConfig.info, formattedMessage);
     await this.writeToFile(this.logConfig.error, formattedMessage);
   }
 }

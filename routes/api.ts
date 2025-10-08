@@ -28,7 +28,7 @@ interface DailyStats {
 // 频率限制
 const trackLimiter = rateLimit({
   windowMs: 60 * 1000, // 1分钟
-  max: 120, // 每分钟最多120次请求
+  max: config.security.maxTrackRequests,
   message: { error: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -36,7 +36,7 @@ const trackLimiter = rateLimit({
 
 const queryLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 120, // 每分钟最多120次请求
+  max: config.security.maxQueryRequests, // 每分钟最多120次请求
   message: { error: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -44,7 +44,7 @@ const queryLimiter = rateLimit({
 
 const queryAllLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10, // 每分钟最多10次请求
+  max: config.security.maxQueryAllRequests, // 每分钟最多10次请求
   message: { error: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -194,7 +194,7 @@ router.get(
 // 获取每日统计，参数date为空时表示获取当天的统计数据
 router.get(
   "/daily-stats",
-  queryAllLimiter,
+  queryLimiter,
   async (req: express.Request, res: express.Response) => {
     try {
       const domain = getDomainFromRequest(req);

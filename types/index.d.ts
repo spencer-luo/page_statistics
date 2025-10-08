@@ -13,11 +13,13 @@ declare module 'config' {
       prefix: string;
     };
     stats: {
-      uvWindow: number;
       saveInterval: number;
+      historyDays: number;
     };
     security: {
-      maxRequestsPerMinute: number;
+      maxTrackRequests: number;
+      maxQueryRequests: number;
+      maxQueryAllRequests: number;
       trustProxy: boolean;
       allowedDomains: string[];
     };
