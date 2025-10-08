@@ -1,19 +1,19 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import config from '../config';
 import logger from '../logger';
+import UvCounter from 'counter/uvcounter';
 
 interface PageData {
   pv: number;
-  uv: Set<string>;
+  uv: UvCounter;
   lastUpdated: number;
 }
 
 interface SiteStats {
   pv: number;
-  uv: Set<string>;
-  daily: Record<string, { pv: number; uv: Set<string> }>;
+  uv: UvCounter;
+  daily: Record<string, { pv: number; uv:UvCounter }>;
 }
 
 interface DomainStatsData {
@@ -32,7 +32,7 @@ class DomainStats {
     this.data = {
       site: {
         pv: 0,
-        uv: new Set(),
+        uv: new UvCounter(),
         daily: {}
       },
       pages: {},
@@ -75,17 +75,17 @@ class DomainStats {
       // logger.info(`loadData storageFile: ${this.storageFile} data: ${fileData}`);
       
       // 重建Set对象
-      parsedData.site.uv = new Set(parsedData.site.uv || []);
+      parsedData.site.uv = UvCounter.fromJSON(parsedData.site.uv);
       // 转换daily中的Set数据
       Object.keys(parsedData.site.daily).forEach(date => {
-        if (parsedData.site.daily[date].uv && Array.isArray(parsedData.site.daily[date].uv)) {
-          parsedData.site.daily[date].uv = new Set(parsedData.site.daily[date].uv);
+        if (parsedData.site.daily[date].uv) {
+          parsedData.site.daily[date].uv = UvCounter.fromJSON(parsedData.site.daily[date].uv);
         }
       });
       // 转换pages中的Set数据
       Object.keys(parsedData.pages).forEach(path => {
-        if (parsedData.pages[path].uv && Array.isArray(parsedData.pages[path].uv)) {
-          parsedData.pages[path].uv = new Set(parsedData.pages[path].uv);
+        if (parsedData.pages[path].uv) {
+          parsedData.pages[path].uv = UvCounter.fromJSON(parsedData.pages[path].uv);
         }
       });
 
@@ -99,16 +99,8 @@ class DomainStats {
 
   async saveData(): Promise<void> {
     try {
-      // 转换Set为数组以便序列化
-      const dataToSave = JSON.parse(JSON.stringify(this.data, (key, value) => {
-        if (value instanceof Set) {
-          return Array.from(value);
-        }
-        return value;
-      }));
-      
       // 保存数据
-      await fs.writeFile(this.storageFile, JSON.stringify(dataToSave, null, 2));
+      await fs.writeFile(this.storageFile, JSON.stringify(this.data, null, 2));
     } catch (error) {
       logger.error(`Failed to save statistics data: ${(error as Error).message}`);
       throw error;
@@ -137,7 +129,7 @@ class DomainStats {
     if (!this.data.site.daily[today]) {
       this.data.site.daily[today] = {
         pv: 0,
-        uv: new Set()
+        uv: new UvCounter()
       };
       // 保留最近N天的记录
       this.keepRecentDaysOnly();
@@ -149,7 +141,7 @@ class DomainStats {
     if (!this.data.pages[pagePath]) {
       this.data.pages[pagePath] = {
         pv: 0,
-        uv: new Set(),
+        uv: new UvCounter(),
         lastUpdated: timestamp
       };
     }
@@ -166,7 +158,7 @@ class DomainStats {
 
     return {
       pv: page.pv,
-      uv: page.uv.size,
+      uv: page.uv.count(),
       lastUpdated: page.lastUpdated
     };
   }
@@ -178,7 +170,7 @@ class DomainStats {
     {
       return { pv: 0, uv: 0 };
     }
-    return {pv: dailyData.pv, uv: dailyData.uv.size};
+    return {pv: dailyData.pv, uv: dailyData.uv.count()};
   }
 
   /**
@@ -203,16 +195,16 @@ class DomainStats {
 
   getSiteStats() {
     const today = new Date().toDateString();
-    const dailyData = this.data.site.daily[today] || { pv: 0, uv: new Set() };
+    const dailyData = this.data.site.daily[today] || { pv: 0, uv: new UvCounter() };
 
     return {
       total: {
         pv: this.data.site.pv,
-        uv: this.data.site.uv.size
+        uv: this.data.site.uv.count()
       },
       today: {
         pv: dailyData.pv,
-        uv: dailyData.uv.size
+        uv: dailyData.uv.count()
       },
       // 可以大致的表示网站的文档数(文章数量)，注意：这里不会包含新建但还未访问的页面。
       pages: Object.keys(this.data.pages).length
@@ -225,7 +217,7 @@ class DomainStats {
 
   resetDailyStats(): void {
     const today = new Date().toISOString().split('T')[0];
-    this.data.site.daily[today] = { pv: 0, uv: new Set() };
+    this.data.site.daily[today] = { pv: 0, uv: new UvCounter() };
   }
 }
 
