@@ -15,7 +15,9 @@
     "clean": "rm -rf ./dist",
     "start": "node dist/server.js",
     "dev": "ts-node server.ts",
-    "watch": "tsc -w"
+    "watch": "tsc -w",
+    "deploy:prepare": "npm run build && node -e \"require('fs').copyFileSync('package.json', 'dist/package.json'); require('fs').copyFileSync('package-lock.json', 'dist/package-lock.json');\"",
+    "deploy:server": "cd ./dist && npm install --production"
   },
   "dependencies": {
     "cors": "^2.8.5",
