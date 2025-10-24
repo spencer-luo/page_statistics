@@ -224,7 +224,7 @@ router.get(
   }
 );
 
-// 获取每日统计，参数date为空时表示获取当天的统计数据
+// 获取所有按天统计的数据
 router.get(
   "/all-dailies",
   queryAllLimiter,
